@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=2.0">
+    <title>自走棋 · 仿金铲铲玩法</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+        body {
+            background: linear-gradient(135deg, #1a1e2b, #2a2f3f);
+            font-family: 'Segoe UI', 'Noto Sans', system-ui, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .game-container {
+            width: 100%;
+            max-width: 750px;
+            background: rgba(20, 22, 30, 0.9);
+            border-radius: 32px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            border: 1px solid rgba(255,215,0,0.3);
+        }
+        .top-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            background: #2c2f3a;
+            padding: 12px 18px;
+            border-radius: 20px;
+            color: #f0e6d2;
+            font-weight: bold;
+            gap: 10px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
+        }
+        .gold-box {
+            background: #e6b422;
+            color: #1e1e1e;
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            box-shadow: 0 0 12px gold;
+        }
+        .level-box {
+            background: #4a5568;
+            padding: 6px 14px;
+            border-radius: 20px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .btn {
+            background: #3b4252;
+            border: none;
+            color: white;
+            font-weight: bold;
+            padding: 8px 14px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            border: 1px solid #5a6275;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn:hover {
+            background: #505a6e;
+            border-color: gold;
+            transform: scale(1.02);
+        }
+        .btn:active {
+            background: #2d333f;
+        }
+        .btn-buy-xp {
+            background: #5a4a2e;
+            border-color: #b5923e;
+        }
+        .btn-refresh {
+            background: #2d5a4b;
+            border-color: #3b8b6e;
+        }
+        .shop-area {
+            background: #1e2129;
+            border-radius: 20px;
+            padding: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #424a5c;
+        }
+        .shop-card {
+            background: linear-gradient(180deg, #2f3542, #1f232e);
+            border-radius: 16px;
+            width: 85px;
+            height: 110px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 2px solid #5a5f6e;
+            transition: 0.2s;
+            position: relative;
+            color: #eee;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+        }
+        .shop-card:hover {
+            border-color: gold;
+            transform: translateY(-5px);
+            box-shadow: 0 8px 18px black;
+        }
+        .shop-card.selected {
+            border: 3px solid #f1c40f;
+            box-shadow: 0 0 15px gold;
+        }
+        .cost {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: gold;
+            color: #000;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+            box-shadow: 0 2px 5px black;
+        }
+        .bench-area {
+            background: #252831;
+            border-radius: 20px;
+            padding: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            min-height: 70px;
+            align-items: center;
+            border: 1px dashed #5a6270;
+            justify-content: center;
+        }
+        .board-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            grid-template-rows: repeat(4, 65px);
+            gap: 6px;
+            background: #2a2e38;
+            border-radius: 20px;
+            padding: 12px;
+            border: 2px solid #4f5a6b;
+            background-image: radial-gradient(circle at 10px 10px, #3d4352 2px, transparent 2px);
+            background-size: 30px 30px;
+        }
+        .board-cell {
+            background: rgba(20, 22, 30, 0.7);
+            border-radius: 12px;
+            border: 2px solid #4a5060;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.1s;
+            position: relative;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 2px black;
+        }
+        .board-cell.occupied {
+            background: #3d4557;
+            border-color: #a0aac0;
+        }
+        .board-cell.highlight {
+            border-color: #f1c40f;
+            box-shadow: 0 0 15px #f39c12;
+            background: #4e4b3a;
+        }
+        .unit-icon {
+            background: #4d3b2c;
+            border-radius: 10px;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(0,0,0,0.4);
+            width: 100%;
+            height: 100%;
+            justify-content: center;
+        }
+        .health-bar {
+            width: 80%;
+            height: 5px;
+            background: #2ecc71;
+            border-radius: 5px;
+            margin-top: 3px;
+        }
+        .battle-log {
+            background: #0f1117;
+            color: #ccc;
+            padding: 8px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            max-height: 70px;
+            overflow-y: auto;
+            border: 1px solid #3e4452;
+            margin-top: 5px;
+        }
+        .player-hp {
+            background: #c0392b;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        .opponent-hp {
+            background: #7f8c8d;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+        .flex-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <div class="top-bar">
+        <div class="gold-box">💰 <span id="goldDisplay">10</span></div>
+        <div class="level-box">⭐ Lv.<span id="levelDisplay">3</span> (<span id="xpDisplay">0/2</span>)</div>
+        <div class="player-hp" id="playerHpDisplay">❤️ 100</div>
+        <button class="btn btn-buy-xp" id="buyXpBtn">📈 买经验 (4💰)</button>
+        <button class="btn btn-refresh" id="refreshBtn">🔄 刷新 (2💰)</button>
+        <button class="btn" id="startBattleBtn">⚔️ 开始战斗</button>
+    </div>
+    <div class="shop-area" id="shopContainer"></div>
+    <div class="bench-area" id="benchContainer"></div>
+    <div class="board-grid" id="boardGrid"></div>
+    <div class="battle-log" id="battleLog">🛡️ 点击商店棋子购买，再点击棋盘/备战席放置。</div>
+    <div style="color:#aaa; font-size:0.7rem; text-align:center;">羁绊：德玛西亚/诺克萨斯/恕瑞玛 · 战士/法师/刺客/射手</div>
+</div>
+
+<script>
+    (function() {
+        // ---------- 游戏数据 ----------
+        const BOARD_ROWS = 4;
+        const BOARD_COLS = 7;
+        const BENCH_SIZE = 9;
+
+        // 棋子库
+        const champions = [
+            { id: 'garen', name: '盖伦', cost: 1, race: '德玛西亚', class: '战士', hp: 600, ad: 50, range: 1, as: 0.8 },
+            { id: 'darius', name: '德莱厄斯', cost: 2, race: '诺克萨斯', class: '战士', hp: 700, ad: 60, range: 1, as: 0.75 },
+            { id: 'lux', name: '拉克丝', cost: 2, race: '德玛西亚', class: '法师', hp: 500, ad: 45, range: 3, as: 0.7 },
+            { id: 'katarina', name: '卡特琳娜', cost: 3, race: '诺克萨斯', class: '刺客', hp: 550, ad: 70, range: 1, as: 0.85 },
+            { id: 'azir', name: '阿兹尔', cost: 3, race: '恕瑞玛', class: '法师', hp: 520, ad: 55, range: 3, as: 0.75 },
+            { id: 'sivir', name: '希维尔', cost: 2, race: '恕瑞玛', class: '射手', hp: 500, ad: 60, range: 3, as: 0.9 },
+            { id: 'talon', name: '泰隆', cost: 1, race: '诺克萨斯', class: '刺客', hp: 450, ad: 55, range: 1, as: 0.8 },
+            { id: 'jarvan', name: '嘉文四世', cost: 4, race: '德玛西亚', class: '战士', hp: 800, ad: 65, range: 1, as: 0.7 },
+            { id: 'renekton', name: '雷克顿', cost: 3, race: '恕瑞玛', class: '战士', hp: 750, ad: 70, range: 1, as: 0.75 },
+            { id: 'kaisa', name: '卡莎', cost: 4, race: '恕瑞玛', class: '射手', hp: 600, ad: 70, range: 3, as: 1.0 }
+        ];
+
+        // 羁绊定义
+        const synergies = {
+            '德玛西亚': { thresholds: [2,4], desc: '德玛西亚单位获得护盾' },
+            '诺克萨斯': { thresholds: [2,4], desc: '诺克萨斯单位增加攻击力' },
+            '恕瑞玛': { thresholds: [2,4], desc: '恕瑞玛单位攻速提升' },
+            '战士': { thresholds: [2,4], desc: '战士获得额外生命' },
+            '法师': { thresholds: [2], desc: '法师技能伤害提升' },
+            '刺客': { thresholds: [2], desc: '刺客暴击率提高' },
+            '射手': { thresholds: [2], desc: '射手攻击距离+1' }
+        };
+
+        // 游戏状态
+        let gold = 10;
+        let level = 3;
+        let xp = 0;
+        let xpToLevel = 2;
+        let playerHp = 100;
+        let opponentHp = 100; // 简化对手生命
+        let round = 1;
+        let shopCards = [];          // 当前商店棋子对象
+        let benchUnits = [];        // 备战席棋子 (最多9)
+        let boardUnits = [];        // 棋盘上棋子 { champ, row, col }
+        let selectedShopIndex = -1;
+        let selectedBenchIndex = -1;
+        let selectedBoardCell = null; // {row, col} 或 null
+        let battleInProgress = false;
+
+        // 棋盘格子占用
+        function isCellOccupied(row, col) {
+            return boardUnits.some(u => u.row === row && u.col === col);
+        }
+
+        function getUnitAtCell(row, col) {
+            return boardUnits.find(u => u.row === row && u.col === col);
+        }
+
+        // 刷新商店 (基于等级概率)
+        function rollShop() {
+            const pool = [];
+            // 简单概率：等级影响高费出现
+            champions.forEach(ch => {
+                let weight = 0;
+                if (ch.cost === 1) weight = level <= 4 ? 40 : 25;
+                else if (ch.cost === 2) weight = level >= 3 ? 35 : 20;
+                else if (ch.cost === 3) weight = level >= 5 ? 25 : 15;
+                else if (ch.cost === 4) weight = level >= 6 ? 15 : 5;
+                for (let i = 0; i < weight; i++) pool.push(ch);
+            });
+            const newShop = [];
+            for (let i = 0; i < 5; i++) {
+                const rand = Math.floor(Math.random() * pool.length);
+                newShop.push({...pool[rand]});
+            }
+            return newShop;
+        }
+
+        function refreshShop() {
+            if (gold < 2) {
+                updateLog('💰 金币不足，刷新需要2金币');
+                return;
+            }
+            gold -= 2;
+            shopCards = rollShop();
+            selectedShopIndex = -1;
+            renderAll();
+        }
+
+        // 购买棋子
+        function buyShopCard(index) {
+            if (battleInProgress) return;
+            if (index < 0 || index >= shopCards.length) return;
+            const champ = shopCards[index];
+            if (gold < champ.cost) {
+                updateLog('金币不足！');
+                return;
+            }
+            // 检查备战席是否已满
+            if (benchUnits.length >= BENCH_SIZE) {
+                updateLog('备战席已满！');
+                return;
+            }
+            gold -= champ.cost;
+            benchUnits.push({...champ});
+            shopCards.splice(index, 1);
+            selectedShopIndex = -1;
+            renderAll();
+        }
+
+        // 卖出棋子 (从备战席或棋盘)
+        function sellUnit(type, indexOrRowCol) {
+            if (battleInProgress) return;
+            let champ = null;
+            if (type === 'bench') {
+                if (indexOrRowCol >= 0 && indexOrRowCol < benchUnits.length) {
+                    champ = benchUnits.splice(indexOrRowCol, 1)[0];
+                }
+            } else if (type === 'board') {
+                const {row, col} = indexOrRowCol;
+                const idx = boardUnits.findIndex(u => u.row === row && u.col === col);
+                if (idx !== -1) {
+                    champ = boardUnits.splice(idx, 1)[0];
+                }
+            }
+            if (champ) {
+                gold += Math.floor(champ.cost * 0.8); // 回收80%
+                updateLog(`卖出 ${champ.name}，获得 ${Math.floor(champ.cost*0.8)} 金币`);
+                renderAll();
+            }
+        }
+
+        // 放置棋子到棋盘
+        function placeUnitToBoard(sourceType, index, row, col) {
+            if (battleInProgress) return;
+            if (isCellOccupied(row, col)) {
+                updateLog('该格子已有棋子');
+                return;
+            }
+            // 检查人口上限
+            if (boardUnits.length >= level) {
+                updateLog('人口已满，提升等级吧');
+                return;
+            }
+            let champ = null;
+            if (sourceType === 'bench') {
+                if (index >= 0 && index < benchUnits.length) {
+                    champ = benchUnits.splice(index, 1)[0];
+                }
+            } else if (sourceType === 'shop') {
+                if (index >= 0 && index < shopCards.length) {
+                    if (gold < shopCards[index].cost) {
+                        updateLog('金币不足');
+                        return;
+                    }
+                    gold -= shopCards[index].cost;
+                    champ = {...shopCards.splice(index, 1)[0]};
+                }
+            }
+            if (champ) {
+                boardUnits.push({ champ, row, col });
+                updateLog(`${champ.name} 放置到 (${row+1},${col+1})`);
+                renderAll();
+            }
+        }
+
+        // 从棋盘移回备战席
+        function moveBoardToBench(row, col) {
+            if (battleInProgress) return;
+            if (benchUnits.length >= BENCH_SIZE) {
+                updateLog('备战席已满');
+                return;
+            }
+            const idx = boardUnits.findIndex(u => u.row === row && u.col === col);
+            if (idx !== -1) {
+                const unit = boardUnits.splice(idx, 1)[0];
+                benchUnits.push(unit.champ);
+                renderAll();
+            }
+        }
+
+        // 购买经验
+        function buyXp() {
+            if (gold < 4) { updateLog('需要4金币'); return; }
+            gold -= 4;
+            xp += 2;
+            if (xp >= xpToLevel && level < 9) {
+                xp -= xpToLevel;
+                level++;
+                xpToLevel = Math.min(8, level * 2);
+                updateLog(`🎉 升级到 Lv.${level}`);
+            }
+            renderAll();
+        }
+
+        // ---------- 战斗系统 ----------
+        function calculateSynergies(units) {
+            const raceCount = {};
+            const classCount = {};
+            units.forEach(u => {
+                const champ = u.champ || u;
+                raceCount[champ.race] = (raceCount[champ.race] || 0) + 1;
+                classCount[champ.class] = (classCount[champ.class] || 0) + 1;
+            });
+            return { raceCount, classCount };
+        }
+
+        function applySynergyBonus(unitStats, synergiesActive) {
+            const bonus = { hp: 0, ad: 0, as: 0, range: 0 };
+            const { race, class: cls } = unitStats;
+            if (synergiesActive.races[race]) {
+                if (race === '德玛西亚') bonus.hp += 150;
+                if (race === '诺克萨斯') bonus.ad += 20;
+                if (race === '恕瑞玛') bonus.as += 0.2;
+            }
+            if (synergiesActive.classes[cls]) {
+                if (cls === '战士') bonus.hp += 200;
+                if (cls === '法师') bonus.ad += 25;
+                if (cls === '刺客') bonus.ad += 15; 
+                if (cls === '射手') bonus.range = 1;
+            }
+            return bonus;
+        }
+
+        function simulateBattle() {
+            const playerTeam = boardUnits.map(u => ({...u.champ}));
+            // 生成对手队伍 (简单AI)
+            const opponentTeam = generateOpponent(round);
+            const playerSyn = calculateSynergies(playerTeam);
+            const oppSyn = calculateSynergies(opponentTeam);
+            const pActiveRaces = getActiveSynergies(playerSyn.raceCount);
+            const pActiveClasses = getActiveSynergies(playerSyn.classCount);
+            const oActiveRaces = getActiveSynergies(oppSyn.raceCount);
+            const oActiveClasses = getActiveSynergies(oppSyn.classCount);
+
+            const playerUnits = playerTeam.map(c => ({
+                ...c,
+                currentHp: c.hp + (pActiveRaces['德玛西亚']?150:0) + (pActiveClasses['战士']?200:0),
+                ad: c.ad + (pActiveRaces['诺克萨斯']?20:0) + (pActiveClasses['法师']?25:0)+(pActiveClasses['刺客']?15:0),
+                as: c.as + (pActiveRaces['恕瑞玛']?0.2:0),
+                range: c.range + (pActiveClasses['射手']?1:0)
+            }));
+            const oppUnits = opponentTeam.map(c => ({
+                ...c,
+                currentHp: c.hp + (oActiveRaces['德玛西亚']?150:0)+(oActiveClasses['战士']?200:0),
+                ad: c.ad + (oActiveRaces['诺克萨斯']?20:0)+(oActiveClasses['法师']?25:0)+(oActiveClasses['刺客']?15:0),
+                as: c.as + (oActiveRaces['恕瑞玛']?0.2:0),
+                range: c.range + (oActiveClasses['射手']?1:0)
+            }));
+
+            let logLines = [];
+            const maxRounds = 40;
+            for (let tick = 0; tick < maxRounds; tick++) {
+                if (playerUnits.length === 0 || oppUnits.length === 0) break;
+                // 简单战斗：每个存活单位攻击一次
+                [...playerUnits].forEach(u => {
+                    if (u.currentHp <= 0) return;
+                    const target = oppUnits.find(o => o.currentHp > 0);
+                    if (target) {
+                        const damage = Math.max(10, u.ad - 5);
+                        target.currentHp -= damage;
+                    }
+                });
+                [...oppUnits].forEach(o => {
+                    if (o.currentHp <= 0) return;
+                    const target = playerUnits.find(u => u.currentHp > 0);
+                    if (target) {
+                        const damage = Math.max(10, o.ad - 5);
+                        target.currentHp -= damage;
+                    }
+                });
+                // 移除死亡单位
+                for (let i = playerUnits.length-1; i>=0; i--) if (playerUnits[i].currentHp <= 0) playerUnits.splice(i,1);
+                for (let i = oppUnits.length-1; i>=0; i--) if (oppUnits[i].currentHp <= 0) oppUnits.splice(i,1);
+            }
+            const playerWin = oppUnits.length === 0 && playerUnits.length > 0;
+            const draw = oppUnits.length === 0 && playerUnits.length === 0;
+            return { playerWin, draw, playerRemaining: playerUnits.length, oppRemaining: oppUnits.length };
+        }
+
+        function generateOpponent(roundNum) {
+            const pool = [...champions];
+            const count = Math.min(3 + Math.floor(roundNum/2), 7);
+            const team = [];
+            for (let i=0; i<count; i++) {
+                const rand = pool[Math.floor(Math.random()*pool.length)];
+                team.push({...rand});
+            }
+            return team;
+        }
+
+        function getActiveSynergies(countMap) {
+            const active = {};
+            for (let [key, count] of Object.entries(countMap)) {
+                const thresholds = synergies[key]?.thresholds || [];
+                let maxReached = 0;
+                for (let t of thresholds) if (count >= t) maxReached = t;
+                if (maxReached > 0) active[key] = maxReached;
+            }
+            return active;
+        }
+
+        async function startBattle() {
+            if (battleInProgress) return;
+            if (boardUnits.length === 0) {
+                updateLog('请先放置棋子到棋盘');
+                return;
+            }
+            battleInProgress = true;
+            document.getElementById('startBattleBtn').disabled = true;
+            updateLog('⚔️ 战斗开始...');
+            await new Promise(r => setTimeout(r, 400));
+            const result = simulateBattle();
+            let damage = 0;
+            if (result.playerWin) {
+                damage = result.playerRemaining * 2 + 2;
+                opponentHp -= damage;
+                updateLog(`✅ 胜利！对敌人造成 ${damage} 点伤害`);
+            } else if (result.draw) {
+                updateLog('🤝 平局，双方各扣2点');
+                playerHp -= 2;
+                opponentHp -= 2;
+            } else {
+                damage = result.oppRemaining * 2 + 2;
+                playerHp -= damage;
+                updateLog(`❌ 失败，受到 ${damage} 点伤害`);
+            }
+            if (playerHp <= 0) {
+                updateLog('💀 你被淘汰了... 刷新页面重来');
+                battleInProgress = false;
+                renderAll();
+                return;
+            }
+            if (opponentHp <= 0) {
+                updateLog('🏆 击败对手！进入下一轮');
+                opponentHp = 100;
+                round++;
+            }
+            // 回合结束奖励
+            gold += 5 + Math.floor(round/3) + (level-1);
+            updateLog(`获得金币，当前 ${gold}`);
+            shopCards = rollShop();
+            selectedShopIndex = -1;
+            battleInProgress = false;
+            document.getElementById('startBattleBtn').disabled = false;
+            renderAll();
+        }
+
+        // ---------- UI 渲染 ----------
+        function renderAll() {
+            document.getElementById('goldDisplay').textContent = gold;
+            document.getElementById('levelDisplay').textContent = level;
+            document.getElementById('xpDisplay').textContent = `${xp}/${xpToLevel}`;
+            document.getElementById('playerHpDisplay').textContent = `❤️ ${playerHp}`;
+            renderShop();
+            renderBench();
+            renderBoard();
+        }
+
+        function renderShop() {
+            const container = document.getElementById('shopContainer');
+            container.innerHTML = '';
+            shopCards.forEach((card, idx) => {
+                const div = document.createElement('div');
+                div.className = 'shop-card' + (selectedShopIndex === idx ? ' selected' : '');
+                div.innerHTML = `<span class="cost">${card.cost}</span><span>${card.name}</span><small>${card.race} ${card.class}</small>`;
+                div.onclick = (e) => {
+                    if (battleInProgress) return;
+                    if (selectedShopIndex === idx) {
+                        // 再次点击：尝试直接购买到备战席
+                        buyShopCard(idx);
+                    } else {
+                        selectedShopIndex = idx;
+                        selectedBenchIndex = -1;
+                        selectedBoardCell = null;
+                        renderAll();
+                    }
+                };
+                container.appendChild(div);
+            });
+        }
+
+        function renderBench() {
+            const container = document.getElementById('benchContainer');
+            container.innerHTML = '';
+            benchUnits.forEach((unit, idx) => {
+                const div = document.createElement('div');
+                div.className = 'shop-card' + (selectedBenchIndex === idx ? ' selected' : '');
+                div.style.width = '75px'; div.style.height = '90px';
+                div.innerHTML = `<span>${unit.name}</span><small>${unit.race} ${unit.class}</small><span style="font-size:0.6rem;">⭐</span>`;
+                div.onclick = (e) => {
+                    if (battleInProgress) return;
+                    if (selectedBenchIndex === idx) {
+                        selectedBenchIndex = -1;
+                    } else {
+                        selectedBenchIndex = idx;
+                        selectedShopIndex = -1;
+                        selectedBoardCell = null;
+                    }
+                    renderAll();
+                };
+                // 右键卖出
+                div.oncontextmenu = (e) => {
+                    e.preventDefault();
+                    sellUnit('bench', idx);
+                };
+                container.appendChild(div);
+            });
+        }
+
+        function renderBoard() {
+            const grid = document.getElementById('boardGrid');
+            grid.innerHTML = '';
+            for (let r = 0; r < BOARD_ROWS; r++) {
+                for (let c = 0; c < BOARD_COLS; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'board-cell';
+                    const unit = getUnitAtCell(r, c);
+                    if (unit) {
+                        cell.classList.add('occupied');
+                        cell.innerHTML = `<div class="unit-icon">${unit.champ.name}<div class="health-bar" style="width:100%"></div></div>`;
+                    }
+                    if (selectedBoardCell && selectedBoardCell.row === r && selectedBoardCell.col === c) {
+                        cell.classList.add('highlight');
+                    }
+                    cell.onclick = () => {
+                        if (battleInProgress) return;
+                        const occupiedUnit = getUnitAtCell(r, c);
+                        // 如果有选中的棋子来源
+                        if (selectedBenchIndex !== -1) {
+                            placeUnitToBoard('bench', selectedBenchIndex, r, c);
+                            selectedBenchIndex = -1;
+                            selectedBoardCell = null;
+                        } else if (selectedShopIndex !== -1) {
+                            placeUnitToBoard('shop', selectedShopIndex, r, c);
+                            selectedShopIndex = -1;
+                            selectedBoardCell = null;
+                        } else if (occupiedUnit) {
+                            // 点击已有棋子：选中或移回备战席
+                            if (selectedBoardCell && selectedBoardCell.row === r && selectedBoardCell.col === c) {
+                                moveBoardToBench(r, c);
+                                selectedBoardCell = null;
+                            } else {
+                                selectedBoardCell = { row: r, col: c };
+                                selectedBenchIndex = -1;
+                                selectedShopIndex = -1;
+                            }
+                        } else {
+                            selectedBoardCell = { row: r, col: c };
+                            selectedBenchIndex = -1;
+                            selectedShopIndex = -1;
+                        }
+                        renderAll();
+                    };
+                    cell.oncontextmenu = (e) => {
+                        e.preventDefault();
+                        if (getUnitAtCell(r, c)) {
+                            sellUnit('board', {row: r, col: c});
+                            selectedBoardCell = null;
+                            renderAll();
+                        }
+                    };
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        function updateLog(msg) {
+            const logEl = document.getElementById('battleLog');
+            logEl.textContent = msg + ' | ' + logEl.textContent.split('|')[0] || '';
+        }
+
+        // 按钮事件
+        document.getElementById('refreshBtn').addEventListener('click', refreshShop);
+        document.getElementById('buyXpBtn').addEventListener('click', buyXp);
+        document.getElementById('startBattleBtn').addEventListener('click', startBattle);
+
+        // 初始化
+        shopCards = rollShop();
+        renderAll();
+        updateLog('欢迎！选择棋子布阵，然后开始战斗。右键棋子可卖出。');
+    })();
+</script>
+</body>
+</html>
